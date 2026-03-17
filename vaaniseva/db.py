@@ -1,4 +1,4 @@
-"""Lakebase connection pool with OAuth credential rotation."""
+"""Lakebase (Autoscaling) connection pool with OAuth credential rotation."""
 
 import logging
 import os
@@ -11,7 +11,13 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
-from vaaniseva.config import LAKEBASE_INSTANCE_NAME, LAKEBASE_HOST, LAKEBASE_DB_NAME
+from vaaniseva.config import (
+    LAKEBASE_PROJECT,
+    LAKEBASE_BRANCH,
+    LAKEBASE_ENDPOINT,
+    LAKEBASE_HOST,
+    LAKEBASE_DB_NAME,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -19,10 +25,13 @@ _pool: ConnectionPool | None = None
 
 
 class CredentialConnection(psycopg.Connection):
-    """Custom connection class that generates fresh OAuth tokens with caching."""
+    """Custom connection class that generates fresh OAuth tokens with caching.
+
+    Works with Autoscaling Lakebase (databricks.sdk postgres API).
+    """
 
     workspace_client = None
-    instance_name = None
+    endpoint_path = None  # e.g. "projects/vaaniseva/branches/production/endpoints/primary"
 
     _cached_credential = None
     _cache_timestamp = None
@@ -31,8 +40,8 @@ class CredentialConnection(psycopg.Connection):
 
     @classmethod
     def connect(cls, conninfo="", **kwargs):
-        if cls.workspace_client is None or cls.instance_name is None:
-            raise ValueError("workspace_client and instance_name must be set")
+        if cls.workspace_client is None or cls.endpoint_path is None:
+            raise ValueError("workspace_client and endpoint_path must be set")
         kwargs["password"] = cls._get_cached_credential()
         return super().connect(conninfo, **kwargs)
 
@@ -46,11 +55,13 @@ class CredentialConnection(psycopg.Connection):
                 and now - cls._cache_timestamp < cls._cache_duration
             ):
                 return cls._cached_credential
-            credential = cls.workspace_client.database.generate_database_credential(
-                request_id=str(uuid.uuid4()),
-                instance_names=[cls.instance_name],
+
+            # Autoscaling Lakebase uses the postgres API
+            credential = cls.workspace_client.api_client.do(
+                "POST",
+                f"/api/2.0/postgres/{cls.endpoint_path}:generateCredential",
             )
-            cls._cached_credential = credential.token
+            cls._cached_credential = credential.get("token", "")
             cls._cache_timestamp = now
             return cls._cached_credential
 
@@ -61,11 +72,19 @@ def init_pool():
     if _pool is not None:
         return
 
+    if not LAKEBASE_HOST:
+        raise RuntimeError("LAKEBASE_HOST not configured")
+
     from databricks.sdk import WorkspaceClient
 
     wc = WorkspaceClient()
+
+    endpoint_path = (
+        f"projects/{LAKEBASE_PROJECT}/branches/{LAKEBASE_BRANCH}"
+        f"/endpoints/{LAKEBASE_ENDPOINT}"
+    )
     CredentialConnection.workspace_client = wc
-    CredentialConnection.instance_name = LAKEBASE_INSTANCE_NAME
+    CredentialConnection.endpoint_path = endpoint_path
 
     # Determine username
     try:
@@ -76,7 +95,7 @@ def init_pool():
 
     conninfo = (
         f"dbname={LAKEBASE_DB_NAME} user={username} "
-        f"host={LAKEBASE_HOST} sslmode=require"
+        f"host={LAKEBASE_HOST} port=5432 sslmode=require"
     )
 
     _pool = ConnectionPool(
@@ -99,7 +118,7 @@ def init_pool():
     # Smoke test
     with _pool.connection() as conn:
         conn.execute("SELECT 1")
-    logger.info("Lakebase connection pool initialized")
+    logger.info("Lakebase connection pool initialized (autoscaling)")
 
 
 @contextmanager

@@ -12,8 +12,10 @@ DATABRICKS_HOST = os.environ.get("DATABRICKS_HOST", "")
 DATABRICKS_TOKEN = os.environ.get("DATABRICKS_TOKEN", "")
 SARVAM_ENDPOINT_NAME = os.environ.get("SARVAM_ENDPOINT_NAME", "sarvam-30b-serving")
 
-# --- Lakebase ---
-LAKEBASE_INSTANCE_NAME = os.environ.get("LAKEBASE_INSTANCE_NAME", "")
+# --- Lakebase (Autoscaling) ---
+LAKEBASE_PROJECT = os.environ.get("LAKEBASE_PROJECT", "vaaniseva")
+LAKEBASE_BRANCH = os.environ.get("LAKEBASE_BRANCH", "production")
+LAKEBASE_ENDPOINT = os.environ.get("LAKEBASE_ENDPOINT", "primary")
 LAKEBASE_HOST = os.environ.get("LAKEBASE_HOST", "")
 LAKEBASE_DB_NAME = os.environ.get("LAKEBASE_DB_NAME", "vaaniseva")
 
