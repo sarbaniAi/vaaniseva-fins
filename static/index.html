@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VaaniSeva — Sovereign Voice Collections Agent</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="brand">
+                <h1>VaaniSeva</h1>
+                <p class="tagline">Sovereign AI Voice Agent for Indian BFSI Collections</p>
+            </div>
+            <div class="sovereignty-badge">
+                <span class="tricolor"></span>
+                100% India-Hosted &bull; Full Data Sovereignty
+            </div>
+        </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="tab-nav">
+        <button class="tab-btn active" data-tab="customer-sim">
+            <span class="tab-icon">&#128100;</span> Customer Simulator
+        </button>
+        <button class="tab-btn" data-tab="agent-live">
+            <span class="tab-icon">&#128266;</span> Agent Live View
+        </button>
+        <button class="tab-btn" data-tab="quality-audit">
+            <span class="tab-icon">&#128203;</span> Quality Auditor
+        </button>
+    </nav>
+
+    <!-- Tab Content -->
+    <main class="tab-content">
+
+        <!-- Persona 1: Customer Simulator -->
+        <section id="customer-sim" class="tab-panel active">
+            <div class="panel-grid">
+                <!-- Left: Customer Selection -->
+                <div class="card">
+                    <h3>Select Customer</h3>
+                    <div id="customer-list" class="customer-list">
+                        <p class="loading">Loading customers...</p>
+                    </div>
+                    <div id="customer-detail" class="customer-detail hidden">
+                        <h4 id="cust-name"></h4>
+                        <div class="detail-grid">
+                            <span class="label">City:</span><span id="cust-city"></span>
+                            <span class="label">Language:</span><span id="cust-lang"></span>
+                            <span class="label">Phone:</span><span id="cust-phone"></span>
+                        </div>
+                        <h4 style="margin-top:12px">Loans</h4>
+                        <div id="cust-loans"></div>
+                        <button id="btn-start-call" class="btn btn-primary" style="margin-top:16px">
+                            Start Call
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right: Call Interface -->
+                <div class="card">
+                    <h3>Call Interface</h3>
+                    <div id="call-status" class="call-status">
+                        <span class="stage-badge" id="call-stage">NO ACTIVE CALL</span>
+                    </div>
+                    <div id="call-transcript" class="transcript">
+                        <p class="muted">Select a customer and start a call to begin.</p>
+                    </div>
+
+                    <!-- Audio controls -->
+                    <div id="call-controls" class="call-controls hidden">
+                        <div class="input-row">
+                            <input type="text" id="text-input" placeholder="Type a response (or use mic)..." class="text-input">
+                            <button id="btn-send-text" class="btn btn-primary">Send</button>
+                        </div>
+                        <div class="audio-row">
+                            <button id="btn-record" class="btn btn-mic">&#127908; Record</button>
+                            <button id="btn-stop-record" class="btn btn-stop hidden">&#9209; Stop</button>
+                            <button id="btn-send-voice" class="btn btn-primary hidden">Send Voice</button>
+                            <span id="rec-timer" class="rec-timer hidden">
+                                <span class="rec-dot"></span> <span id="rec-time">00:00</span>
+                            </span>
+                        </div>
+                        <div id="agent-audio-container"></div>
+                        <button id="btn-end-call" class="btn btn-danger" style="margin-top:12px">End Call</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Persona 2: Agent Live View -->
+        <section id="agent-live" class="tab-panel">
+            <div class="panel-grid three-col">
+                <!-- Transcript -->
+                <div class="card">
+                    <h3>Live Transcript</h3>
+                    <div id="live-transcript" class="transcript">
+                        <p class="muted">Start a call in Customer Simulator to see the live transcript.</p>
+                    </div>
+                </div>
+
+                <!-- Call State -->
+                <div class="card">
+                    <h3>Call State</h3>
+                    <div class="state-panel">
+                        <div class="state-item">
+                            <span class="label">Call ID:</span>
+                            <span id="live-call-id">—</span>
+                        </div>
+                        <div class="state-item">
+                            <span class="label">Stage:</span>
+                            <span id="live-stage" class="stage-badge">—</span>
+                        </div>
+                        <div class="state-item">
+                            <span class="label">Language:</span>
+                            <span id="live-language">—</span>
+                        </div>
+                        <div class="state-item">
+                            <span class="label">Turn:</span>
+                            <span id="live-turn">0</span>
+                        </div>
+                    </div>
+                    <h4 style="margin-top:16px">Call Flow</h4>
+                    <div id="call-flow-viz" class="call-flow">
+                        <span class="flow-step" data-stage="GREETING">Greeting</span>
+                        <span class="flow-arrow">&rarr;</span>
+                        <span class="flow-step" data-stage="IDENTITY_VERIFICATION">Verify</span>
+                        <span class="flow-arrow">&rarr;</span>
+                        <span class="flow-step" data-stage="PURPOSE">Purpose</span>
+                        <span class="flow-arrow">&rarr;</span>
+                        <span class="flow-step" data-stage="NEGOTIATION">Negotiate</span>
+                        <span class="flow-arrow">&rarr;</span>
+                        <span class="flow-step" data-stage="RESOLUTION">Resolve</span>
+                        <span class="flow-arrow">&rarr;</span>
+                        <span class="flow-step" data-stage="CLOSING">Close</span>
+                    </div>
+                </div>
+
+                <!-- Context Panel -->
+                <div class="card">
+                    <h3>Retrieved Context</h3>
+                    <div id="live-context" class="context-panel">
+                        <p class="muted">Context from RAG and SQL will appear here during calls.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Persona 3: Quality Auditor -->
+        <section id="quality-audit" class="tab-panel">
+            <div class="card">
+                <div class="audit-header">
+                    <h3>Quality Audit Dashboard</h3>
+                    <button id="btn-run-audit" class="btn btn-primary">Run Audit (All Unscored)</button>
+                </div>
+                <div id="audit-stats" class="audit-stats">
+                    <div class="stat-card">
+                        <span class="stat-value" id="stat-total-calls">0</span>
+                        <span class="stat-label">Total Calls</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="stat-avg-score">0</span>
+                        <span class="stat-label">Avg Quality Score</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="stat-resolution-rate">0%</span>
+                        <span class="stat-label">Resolution Rate</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Scored Calls</h3>
+                <table id="audit-table" class="audit-table">
+                    <thead>
+                        <tr>
+                            <th>Call ID</th>
+                            <th>Customer</th>
+                            <th>Language</th>
+                            <th>Outcome</th>
+                            <th>Overall</th>
+                            <th>Compliance</th>
+                            <th>Script</th>
+                            <th>Empathy</th>
+                            <th>Resolution</th>
+                            <th>Language</th>
+                        </tr>
+                    </thead>
+                    <tbody id="audit-table-body">
+                        <tr><td colspan="10" class="muted">No scored calls yet. Run an audit to score completed calls.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Score detail panel -->
+            <div id="score-detail" class="card hidden">
+                <h3>Score Details — <span id="detail-call-id"></span></h3>
+                <div class="score-bars" id="score-bars"></div>
+                <h4>Findings</h4>
+                <ul id="detail-findings"></ul>
+                <h4>Recommendations</h4>
+                <ul id="detail-recommendations"></ul>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>Powered by <strong>Sarvam AI</strong> + <strong>Databricks</strong> | STT: Saaras v3 | TTS: Bulbul v3 | LLM: Sarvam-105B</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="/js/audio.js"></script>
+    <script src="/js/app.js"></script>
+    <script src="/js/customer_sim.js"></script>
+    <script src="/js/agent_live.js"></script>
+    <script src="/js/quality_audit.js"></script>
+</body>
+</html>

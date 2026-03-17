@@ -1,0 +1,14 @@
+bundle:
+  name: vaaniseva
+
+resources:
+  apps:
+    vaaniseva:
+      name: vaaniseva
+      description: "VaaniSeva — Sovereign AI Voice Agent for Indian BFSI Collections"
+      source_code_path: .
+
+targets:
+  dev:
+    default: true
+    mode: development

@@ -1,0 +1,29 @@
+command:
+  - uvicorn
+  - app:app
+  - --host
+  - 0.0.0.0
+  - --port
+  - "8000"
+
+env:
+  - name: SARVAM_API_KEY
+    value: "${SARVAM_API_KEY}"
+  - name: DATABRICKS_HOST
+    value: "${DATABRICKS_HOST}"
+  - name: DATABRICKS_TOKEN
+    value: "${DATABRICKS_TOKEN}"
+  - name: SARVAM_ENDPOINT_NAME
+    value: "sarvam-30b-serving"
+  - name: LAKEBASE_INSTANCE_NAME
+    value: ""  # UPDATE: Your Lakebase instance name
+  - name: LAKEBASE_HOST
+    value: ""  # UPDATE: Your Lakebase host
+  - name: LAKEBASE_DB_NAME
+    value: "vaaniseva"
+  - name: VS_ENDPOINT_NAME
+    value: ""  # UPDATE: Your Vector Search endpoint
+  - name: VS_INDEX_NAME
+    value: ""  # UPDATE: Your Vector Search index
+  - name: GENIE_SPACE_ID
+    value: ""  # UPDATE: Your Genie Space ID (optional)
