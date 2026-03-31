@@ -32,6 +32,9 @@
         <button class="tab-btn" data-tab="quality-audit">
             <span class="tab-icon">&#128203;</span> Quality Auditor
         </button>
+        <button class="tab-btn" data-tab="whatsapp">
+            <span class="tab-icon">&#128172;</span> WhatsApp
+        </button>
     </nav>
 
     <!-- Tab Content -->
@@ -55,9 +58,22 @@
                         </div>
                         <h4 style="margin-top:12px">Loans</h4>
                         <div id="cust-loans"></div>
-                        <button id="btn-start-call" class="btn btn-primary" style="margin-top:16px">
-                            Start Call
-                        </button>
+                        <h4 style="margin-top:12px">Call Purpose</h4>
+                        <select id="call-purpose" class="text-input" style="width:100%;margin-bottom:8px">
+                            <option value="LOAN_RECOVERY">Loan Recovery (Collections)</option>
+                            <option value="PRODUCT_OFFERING">Product / Loan Offering</option>
+                            <option value="SERVICE_FOLLOWUP">Service Follow-up (CSAT)</option>
+                        </select>
+                        <div style="display:flex;gap:8px;margin-top:8px">
+                            <button id="btn-start-call" class="btn btn-primary" style="flex:1">
+                                Simulate Call
+                            </button>
+                            <button id="btn-dial-call" class="btn btn-mic" style="flex:1">
+                                &#128222; Real Call
+                            </button>
+                        </div>
+                        <input type="text" id="dial-number" placeholder="Customer phone (+91...)" class="text-input" style="width:100%;margin-top:6px;display:none"
+                        >
                     </div>
                 </div>
 
@@ -206,6 +222,61 @@
                 <ul id="detail-recommendations"></ul>
             </div>
         </section>
+        <!-- Persona 4: WhatsApp -->
+        <section id="whatsapp" class="tab-panel">
+            <div class="panel-grid">
+                <!-- Left: Send & Flow -->
+                <div class="card">
+                    <h3>WhatsApp Collections Flow</h3>
+                    <div class="detail-grid" style="margin-bottom:12px">
+                        <span class="label">Phone:</span>
+                        <input type="text" id="wa-phone" placeholder="+919876543210" class="text-input" style="width:100%">
+                    </div>
+                    <div style="display:flex;gap:8px;margin-bottom:12px">
+                        <button id="btn-wa-start-flow" class="btn btn-primary" style="flex:1">Start Collections Flow</button>
+                        <button id="btn-wa-refresh" class="btn" style="flex:1">Refresh</button>
+                    </div>
+
+                    <h4>Send Custom Message</h4>
+                    <textarea id="wa-message" placeholder="Type a message..." class="text-input" style="width:100%;min-height:60px;margin-bottom:8px"></textarea>
+                    <button id="btn-wa-send" class="btn btn-primary" style="width:100%">Send Message</button>
+                    <p id="wa-send-status" style="color:#888;font-size:12px;margin-top:4px"></p>
+
+                    <h4 style="margin-top:16px">Test Mode (Simulate Incoming)</h4>
+                    <p style="color:#888;font-size:12px;margin-bottom:8px">Simulate a customer sending a WhatsApp message</p>
+                    <input type="text" id="wa-sim-msg" placeholder="Customer message (e.g., hi, 1, pay)" class="text-input" style="width:100%;margin-bottom:8px">
+                    <button id="btn-wa-simulate" class="btn btn-mic" style="width:100%">Simulate Incoming</button>
+                </div>
+
+                <!-- Right: Conversation -->
+                <div class="card">
+                    <h3>Conversation</h3>
+                    <div id="wa-conversation" class="transcript" style="min-height:300px">
+                        <p class="muted">Enter a phone number and start the collections flow, or simulate incoming messages.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top:16px">
+                <h3>WhatsApp Collections Flow</h3>
+                <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:#555">
+                    <span><strong>1.</strong> Make a Payment</span>
+                    <span>&#8594;</span>
+                    <span><strong>2.</strong> Check EMI</span>
+                    <span>&#8594;</span>
+                    <span><strong>3.</strong> Loan Restructuring</span>
+                    <span>&#8594;</span>
+                    <span><strong>4.</strong> Request Callback</span>
+                    <span>&#8594;</span>
+                    <span><strong>5.</strong> AI Chat</span>
+                </div>
+                <p style="color:#888;font-size:12px;margin-top:8px">
+                    <strong>Twilio Sandbox:</strong> Send <code>join &lt;keyword&gt;</code> to <strong>+1 415 523 8886</strong> on WhatsApp to connect.
+                    For incoming webhook, set URL to <code>&lt;public-url&gt;/api/whatsapp/incoming</code>
+                </p>
+            </div>
+        </section>
+
     </main>
 
     <!-- Footer -->
@@ -219,5 +290,6 @@
     <script src="/js/customer_sim.js"></script>
     <script src="/js/agent_live.js"></script>
     <script src="/js/quality_audit.js"></script>
+    <script src="/js/whatsapp.js"></script>
 </body>
 </html>

@@ -25,13 +25,9 @@ _pool: ConnectionPool | None = None
 
 
 class CredentialConnection(psycopg.Connection):
-    """Custom connection class that generates fresh OAuth tokens with caching.
-
-    Works with Autoscaling Lakebase (databricks.sdk postgres API).
-    """
+    """Custom connection class that generates fresh OAuth tokens with caching."""
 
     workspace_client = None
-    endpoint_path = None  # e.g. "projects/vaaniseva/branches/production/endpoints/primary"
 
     _cached_credential = None
     _cache_timestamp = None
@@ -40,8 +36,8 @@ class CredentialConnection(psycopg.Connection):
 
     @classmethod
     def connect(cls, conninfo="", **kwargs):
-        if cls.workspace_client is None or cls.endpoint_path is None:
-            raise ValueError("workspace_client and endpoint_path must be set")
+        if cls.workspace_client is None:
+            raise ValueError("workspace_client must be set")
         kwargs["password"] = cls._get_cached_credential()
         return super().connect(conninfo, **kwargs)
 
@@ -56,10 +52,14 @@ class CredentialConnection(psycopg.Connection):
             ):
                 return cls._cached_credential
 
-            # Autoscaling Lakebase uses the postgres API
+            endpoint_path = (
+                f"projects/{LAKEBASE_PROJECT}/branches/{LAKEBASE_BRANCH}"
+                f"/endpoints/{LAKEBASE_ENDPOINT}"
+            )
             credential = cls.workspace_client.api_client.do(
                 "POST",
-                f"/api/2.0/postgres/{cls.endpoint_path}:generateCredential",
+                "/api/2.0/postgres/credentials",
+                body={"endpoint": endpoint_path},
             )
             cls._cached_credential = credential.get("token", "")
             cls._cache_timestamp = now
@@ -77,16 +77,14 @@ def init_pool():
 
     from databricks.sdk import WorkspaceClient
 
+    # Databricks Apps inject OAuth (CLIENT_ID/SECRET) for the SP.
+    # Remove PAT token to avoid "multiple auth methods" error.
+    os.environ.pop("DATABRICKS_TOKEN", None)
     wc = WorkspaceClient()
 
-    endpoint_path = (
-        f"projects/{LAKEBASE_PROJECT}/branches/{LAKEBASE_BRANCH}"
-        f"/endpoints/{LAKEBASE_ENDPOINT}"
-    )
     CredentialConnection.workspace_client = wc
-    CredentialConnection.endpoint_path = endpoint_path
 
-    # Determine username
+    # Determine username (SP application ID)
     try:
         sp = wc.current_service_principal.me()
         username = sp.application_id

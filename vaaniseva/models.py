@@ -28,10 +28,17 @@ class CallOutcome(str, Enum):
 
 # --- Request/Response models ---
 
+class CallPurpose(str, Enum):
+    LOAN_RECOVERY = "LOAN_RECOVERY"
+    PRODUCT_OFFERING = "PRODUCT_OFFERING"
+    SERVICE_FOLLOWUP = "SERVICE_FOLLOWUP"
+
+
 class CallStartRequest(BaseModel):
     customer_id: int
     language: str = "hi"
     agent_name: str = "VaaniSeva Agent"
+    call_purpose: str = "LOAN_RECOVERY"
 
 
 class CallStartResponse(BaseModel):

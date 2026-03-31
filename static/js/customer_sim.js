@@ -8,6 +8,7 @@ const CustomerSim = (() => {
         loadCustomers();
 
         document.getElementById('btn-start-call')?.addEventListener('click', startCall);
+        document.getElementById('btn-dial-call')?.addEventListener('click', dialCall);
         document.getElementById('btn-send-text')?.addEventListener('click', sendText);
         document.getElementById('btn-end-call')?.addEventListener('click', endCall);
         document.getElementById('btn-record')?.addEventListener('click', () => AudioManager.startRecording());
@@ -76,8 +77,76 @@ const CustomerSim = (() => {
             }
 
             detailEl.classList.remove('hidden');
+
+            // Show phone number in dial input and show it
+            const dialInput = document.getElementById('dial-number');
+            if (dialInput) {
+                dialInput.value = c.phone;
+                dialInput.style.display = 'block';
+            }
         } catch (e) {
             console.error('Failed to load customer:', e);
+        }
+    }
+
+    async function dialCall() {
+        if (!selectedCustomerId) return;
+
+        const toNumber = document.getElementById('dial-number')?.value;
+        if (!toNumber) {
+            alert('Enter the phone number to dial');
+            return;
+        }
+
+        const callPurpose = document.getElementById('call-purpose')?.value || 'LOAN_RECOVERY';
+        const transcriptEl = document.getElementById('call-transcript');
+        transcriptEl.innerHTML = '<p class="loading">Dialing real call...</p>';
+
+        try {
+            const data = await App.api('/api/voice/dial', {
+                method: 'POST',
+                body: JSON.stringify({
+                    customer_id: selectedCustomerId,
+                    to_number: toNumber,
+                    call_purpose: callPurpose,
+                }),
+            });
+
+            if (data.error) {
+                transcriptEl.innerHTML = `<p class="muted">Dial failed: ${data.error}</p>`;
+                return;
+            }
+
+            transcriptEl.innerHTML = '';
+            appendMessage('agent', `📞 Real call dialing to ${toNumber}... (Call SID: ${data.call_sid})`, 'DIALING');
+            appendMessage('agent', 'Twilio is connecting the call. The agent will speak when customer picks up.', 'CONNECTING');
+
+            // Show greeting
+            if (data.greeting) {
+                appendMessage('agent', data.greeting, 'GREETING');
+                App.addTranscriptEntry('agent', data.greeting, 'GREETING');
+            }
+
+            App.updateCallState({
+                callId: data.call_id,
+                customerId: selectedCustomerId,
+                customerName: data.customer_name,
+                stage: 'GREETING',
+                isActive: true,
+                transcript: [],
+            });
+
+            // Show phone call controls
+            document.getElementById('call-controls')?.classList.remove('hidden');
+            document.getElementById('call-stage')?.classList.add('active');
+            document.getElementById('call-stage').textContent = 'REAL CALL — GREETING';
+
+            // Store that this is a phone call
+            App.state.isPhoneCall = true;
+            App.state.twilioSid = data.call_sid;
+
+        } catch (e) {
+            transcriptEl.innerHTML = `<p class="muted">Dial error: ${e.message}</p>`;
         }
     }
 
@@ -88,11 +157,13 @@ const CustomerSim = (() => {
         transcriptEl.innerHTML = '<p class="loading">Starting call...</p>';
 
         try {
+            const callPurpose = document.getElementById('call-purpose')?.value || 'LOAN_RECOVERY';
             const data = await App.api('/api/call/start', {
                 method: 'POST',
                 body: JSON.stringify({
                     customer_id: selectedCustomerId,
                     language: 'hi',
+                    call_purpose: callPurpose,
                 }),
             });
 
@@ -138,7 +209,45 @@ const CustomerSim = (() => {
         appendMessage('customer', text, App.state.stage);
         App.addTranscriptEntry('customer', text, App.state.stage);
 
-        await processTurn({ text });
+        // Phone call: use telephony process-turn (agent speaks on phone)
+        if (App.state.isPhoneCall) {
+            await processPhoneTurn(text);
+        } else {
+            await processTurn({ text });
+        }
+    }
+
+    async function processPhoneTurn(customerText) {
+        try {
+            const data = await App.api('/api/telephony/process-turn', {
+                method: 'POST',
+                body: JSON.stringify({
+                    call_id: App.state.callId,
+                    customer_text: customerText,
+                }),
+            });
+
+            if (data.error) {
+                appendMessage('agent', `Error: ${data.error}`, App.state.stage);
+                return;
+            }
+
+            appendMessage('agent', `🔊 ${data.agent_text}`, data.stage);
+            App.addTranscriptEntry('agent', data.agent_text, data.stage);
+
+            App.updateCallState({
+                stage: data.stage,
+                turnCount: App.state.turnCount + 1,
+            });
+            document.getElementById('call-stage').textContent = `REAL CALL — ${data.stage}`;
+
+            if (data.is_ended) {
+                onCallEnded(data.outcome || 'COMPLETED');
+                App.state.isPhoneCall = false;
+            }
+        } catch (e) {
+            appendMessage('agent', `Error: ${e.message}`, App.state.stage);
+        }
     }
 
     async function sendVoice() {

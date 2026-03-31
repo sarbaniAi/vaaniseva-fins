@@ -1,0 +1,110 @@
+flowchart TB
+
+    %% ══════════════════════════════════════════════════════════════
+    %%  BANNER — top row
+    %% ══════════════════════════════════════════════════════════════
+    BANNER["🟠  100% India-Hosted AI — Full Data Sovereignty  ⚪  🟢\nAPJ Buildathon 2026  ·  BFSI Collections Voice Agent  ·  22 Indian Languages"]:::banner
+
+    %% ══════════════════════════════════════════════════════════════
+    %%  MAIN ARCHITECTURE — one big subgraph below the banner
+    %% ══════════════════════════════════════════════════════════════
+    subgraph MAIN[" "]
+        direction LR
+
+        %% ── CUSTOMER ──
+        subgraph CUST["  Customer Devices  "]
+            direction TB
+            CP["📞 Customer Phone\nPSTN Voice Calls"]:::custNode
+            CW["💬 Customer\nWhatsApp"]:::custNode
+        end
+
+        %% ── TWILIO ──
+        subgraph TWILIO["  Twilio Communication Layer  "]
+            direction TB
+            TV["🔊 Programmable Voice\nWebSocket Streaming"]:::twilioNode
+            TF["⚡ Twilio Function\n34-line Serverless Relay"]:::twilioNode
+            TW["💬 WhatsApp Sandbox\nWebhook"]:::twilioNode
+        end
+
+        %% ── DATABRICKS ──
+        subgraph DB["  ☁  Databricks Platform  "]
+            direction TB
+
+            subgraph APP["  Databricks App  (FastAPI)  "]
+                direction LR
+                T1["🖥 Customer\nSimulator"]:::appTab
+                T2["👁 Agent\nLive View"]:::appTab
+                T3["✅ Quality\nAuditor"]:::appTab
+                T4["📲 WhatsApp\nFlow Engine"]:::appTab
+            end
+
+            subgraph FSM["  Call Flow State Machine  "]
+                direction LR
+                S1(["🙏 Greeting"]):::state --> S2(["🔍 Verify"]):::state --> S3(["💬 Purpose"]):::state --> S4(["🤝 Negotiate"]):::state --> S5(["✅ Resolve"]):::state --> S6(["👋 Close"]):::state
+                S4 -.->|escalate| S7{{"⚠ Escalate"}}:::esc
+            end
+
+            subgraph LB["  Databricks Lakebase  (Autoscaling PostgreSQL)  "]
+                direction LR
+                TB1[("customer_profiles\n50 rows")]:::dbTable
+                TB2[("loan_accounts\n80 rows")]:::dbTable
+                TB3[("payment_history\n613 rows")]:::dbTable
+                TB4[("knowledge_base\n40 rows")]:::dbTable
+                TB5[("call_logs\nquality_scores")]:::dbTable
+            end
+        end
+
+        %% ── SARVAM AI ──
+        subgraph SAI["  🇮🇳  Sarvam AI — India Hosted  "]
+            direction TB
+            STT["🎙 STT — Saaras v3\n22 Indian Languages"]:::sarvamNode
+            LLM["🧠 LLM — Sarvam-M / 30B\nReasoning Engine"]:::sarvamNode
+            TTS["🔈 TTS — Bulbul v2\n11 Voices"]:::sarvamNode
+            STT -->|"② Transcript"| LLM
+            LLM -->|"③ Response"| TTS
+        end
+
+        %% ── CONNECTIONS INSIDE MAIN ──
+
+        %% Voice path
+        CP <-->|"PSTN"| TV
+        TV <-->|"WebSocket\nAudio"| APP
+
+        %% WhatsApp path
+        CW <-->|"WhatsApp API"| TW
+        TW -->|"Webhook"| TF
+        TF <-->|"HTTP Relay"| APP
+
+        %% App ↔ Lakebase
+        APP <-->|"SQL Queries\ncustomer · loans · payments"| LB
+
+        %% App → FSM
+        APP -.-|"drives"| FSM
+
+        %% App ↔ Sarvam AI (voice pipeline — numbered steps)
+        APP -->|"① Audio Out  ④ Audio In"| STT
+    end
+
+    %% Banner → Main (top-down flow)
+    BANNER --> MAIN
+
+    %% ══════════════════════════════════════════════════════════════
+    %%  STYLES
+    %% ══════════════════════════════════════════════════════════════
+    classDef banner     fill:#ff9933,stroke:#138808,stroke-width:4px,color:#ffffff,font-weight:bold,font-size:14px
+    classDef custNode   fill:#eeeeee,stroke:#888888,stroke-width:2px,color:#222222,font-size:13px
+    classDef twilioNode fill:#c3e6cb,stroke:#28a745,stroke-width:2px,color:#155724,font-size:13px
+    classDef appTab     fill:#cce5ff,stroke:#1a6ebd,stroke-width:2px,color:#003366,font-size:13px
+    classDef sarvamNode fill:#fff3cd,stroke:#e07b00,stroke-width:2px,color:#6b3a00,font-size:13px
+    classDef dbTable    fill:#dbeafe,stroke:#3b82f6,stroke-width:1.5px,color:#1e3a5f,font-size:12px
+    classDef state      fill:#e8f4fd,stroke:#5ba3d9,stroke-width:1.5px,color:#003366,font-size:12px
+    classDef esc        fill:#fdecea,stroke:#c0392b,stroke-width:2px,color:#7b241c,font-size:12px
+
+    style MAIN   fill:transparent,stroke:none
+    style CUST   fill:#f5f5f5,stroke:#aaaaaa,stroke-width:2px,color:#333333
+    style TWILIO fill:#e6f4ea,stroke:#34a853,stroke-width:2px,color:#1a5c2a
+    style DB     fill:#e8f1fb,stroke:#1a6ebd,stroke-width:3px,color:#003366
+    style APP    fill:#d6eaf8,stroke:#2874a6,stroke-width:2px,color:#003366
+    style FSM    fill:#eaf4fb,stroke:#5499c7,stroke-width:1.5px,color:#003366
+    style LB     fill:#d6eaf8,stroke:#2874a6,stroke-width:2px,color:#003366
+    style SAI    fill:#fff8e6,stroke:#e07b00,stroke-width:2px,color:#6b3a00

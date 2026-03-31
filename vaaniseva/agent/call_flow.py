@@ -27,12 +27,14 @@ class CallSession:
         loans: list[dict],
         language: str = "hi",
         agent_name: str = "VaaniSeva Agent",
+        call_purpose: str = "LOAN_RECOVERY",
     ):
         self.call_id = call_id
         self.customer = customer
         self.loans = loans
         self.language = language
         self.agent_name = agent_name
+        self.call_purpose = call_purpose
         self.stage = CallStage.GREETING
         self.conversation: list[dict] = []  # {"role": ..., "content": ...}
         self.transcript: list[dict] = []  # Full transcript with metadata
@@ -52,10 +54,17 @@ class CallSession:
     def _prompt_kwargs(self, rag_context: str = "") -> dict:
         """Build template kwargs for system prompts."""
         loan = self.primary_loan
+        existing_loans = ", ".join(
+            f"{l.get('loan_type')} (₹{l.get('emi_amount', 0):,.0f}/mo)"
+            for l in self.loans
+        ) or "None"
         return {
             "agent_name": self.agent_name,
             "customer_name": self.customer.get("name", "Customer"),
             "account_last4": self.customer.get("account_last4", "****"),
+            "customer_city": self.customer.get("city", ""),
+            "risk_tier": self.customer.get("risk_tier", "MEDIUM"),
+            "existing_loans": existing_loans,
             "loan_type": loan.get("loan_type", "Personal"),
             "overdue_amount": f"{loan.get('overdue_amount', 0):,.0f}",
             "days_overdue": loan.get("days_overdue", 0),
@@ -65,12 +74,15 @@ class CallSession:
 
     def generate_greeting(self) -> tuple[str, str | None]:
         """Generate the opening greeting. Returns (text, audio_b64)."""
-        prompt = get_prompt(CallStage.GREETING, **self._prompt_kwargs())
-        greeting = call_llm(
-            system_prompt=prompt,
-            messages=[],
-            max_tokens=150,
-        )
+        name = self.customer.get("name", "Customer")
+
+        # Scripted greetings per purpose — no LLM needed, natural and consistent
+        greetings = {
+            "LOAN_RECOVERY": f"Namaste {name} ji, main VaaniSeva se Ria bol rahi hoon. Aapke loan account ke regarding ek important update hai. Kya aap abhi baat kar sakte hain?",
+            "PRODUCT_OFFERING": f"Namaste {name} ji, main VaaniSeva se Ria bol rahi hoon. Aapke liye ek special offer hai jo aapke profile ke hisaab se taiyaar kiya gaya hai. Kya aapke paas do minute hain?",
+            "SERVICE_FOLLOWUP": f"Namaste {name} ji, main VaaniSeva se Ria bol rahi hoon. Aapki recent loan experience ke baare mein feedback lena chahti thi. Kya aap apna experience share kar sakte hain?",
+        }
+        greeting = greetings.get(self.call_purpose, greetings["LOAN_RECOVERY"])
         audio = synthesize(greeting, self.language)
         self.conversation.append({"role": "assistant", "content": greeting})
         self.transcript.append({
@@ -157,7 +169,7 @@ class CallSession:
 
         # Step 5: Get agent response
         prompt_kwargs = self._prompt_kwargs(rag_context=rag_context)
-        system_prompt = get_prompt(self.stage, **prompt_kwargs)
+        system_prompt = get_prompt(self.stage, call_purpose=self.call_purpose, **prompt_kwargs)
         agent_text = call_llm(
             system_prompt=system_prompt,
             messages=self.conversation,
@@ -197,18 +209,23 @@ class CallSession:
         current_idx = CALL_STAGE_ORDER.index(self.stage) if self.stage in CALL_STAGE_ORDER else 0
 
         if self.stage == CallStage.GREETING:
-            # Customer confirmed identity or said hello
-            if any(w in text_lower for w in ["haan", "yes", "ji", "bol raha", "speaking", "main hi"]):
+            # Customer responded to greeting — advance to next stage
+            # Any meaningful response means they're on the line
+            if len(text_lower) > 2 or any(w in text_lower for w in [
+                "haan", "yes", "ji", "bol", "speaking", "main", "batao", "boliye",
+                "bataiye", "tell", "kya", "kaun", "hello", "hi", "namaste",
+                "बताइए", "हां", "जी", "बोलिए", "हाँ",
+            ]):
                 self.stage = CallStage.IDENTITY_VERIFICATION
 
         elif self.stage == CallStage.IDENTITY_VERIFICATION:
-            # Customer provided digits or confirmed
-            if any(c.isdigit() for c in customer_text) or any(w in text_lower for w in ["haan", "yes", "sahi"]):
+            # Any response advances — for phone calls, caller ID is sufficient
+            if len(text_lower) > 1:
                 self.stage = CallStage.PURPOSE
 
         elif self.stage == CallStage.PURPOSE:
-            # After purpose is stated, any customer response moves to negotiation
-            if self.turn_count >= 3:
+            # After purpose is stated, customer's response moves to negotiation
+            if self.turn_count >= 2:
                 self.stage = CallStage.NEGOTIATION
 
         elif self.stage == CallStage.NEGOTIATION:
@@ -250,6 +267,7 @@ def create_session(
     loans: list[dict],
     language: str = "hi",
     agent_name: str = "VaaniSeva Agent",
+    call_purpose: str = "LOAN_RECOVERY",
 ) -> CallSession:
     """Create a new call session."""
     call_id = str(uuid.uuid4())[:8]
@@ -259,6 +277,7 @@ def create_session(
         loans=loans,
         language=language,
         agent_name=agent_name,
+        call_purpose=call_purpose,
     )
     _sessions[call_id] = session
     return session

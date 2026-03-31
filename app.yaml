@@ -7,14 +7,13 @@ command:
   - "8000"
 
 env:
+  # Sarvam AI
   - name: SARVAM_API_KEY
     value: "${SARVAM_API_KEY}"
-  - name: DATABRICKS_HOST
-    value: "${DATABRICKS_HOST}"
-  - name: DATABRICKS_TOKEN
-    value: "${DATABRICKS_TOKEN}"
   - name: SARVAM_ENDPOINT_NAME
     value: "sarvam-30b-serving"
+
+  # Lakebase
   - name: LAKEBASE_PROJECT
     value: "vaaniseva"
   - name: LAKEBASE_BRANCH
@@ -22,12 +21,24 @@ env:
   - name: LAKEBASE_ENDPOINT
     value: "primary"
   - name: LAKEBASE_HOST
-    value: "ep-soft-forest-d2m021q5.database.us-east-1.cloud.databricks.com"
+    value: "${LAKEBASE_HOST}"
   - name: LAKEBASE_DB_NAME
     value: "vaaniseva"
+
+  # Vector Search / Genie
   - name: VS_ENDPOINT_NAME
     value: ""
   - name: VS_INDEX_NAME
     value: ""
   - name: GENIE_SPACE_ID
     value: ""
+
+  # Twilio (Voice Calls + WhatsApp)
+  - name: TWILIO_ACCOUNT_SID
+    value: "${TWILIO_ACCOUNT_SID}"
+  - name: TWILIO_AUTH_TOKEN
+    value: "${TWILIO_AUTH_TOKEN}"
+  - name: TWILIO_PHONE_NUMBER
+    value: "${TWILIO_PHONE_NUMBER}"
+  - name: TWILIO_WHATSAPP_FROM
+    value: "whatsapp:+14155238886"

@@ -33,6 +33,7 @@ async def start_call(req: CallStartRequest):
         loans=loans,
         language=req.language,
         agent_name=req.agent_name,
+        call_purpose=req.call_purpose,
     )
 
     # Generate greeting

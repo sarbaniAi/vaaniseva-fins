@@ -31,6 +31,7 @@ const App = (() => {
         CustomerSim.init();
         AgentLive.init();
         QualityAudit.init();
+        if (typeof WhatsApp !== 'undefined') WhatsApp.init();
     }
 
     // API helper
