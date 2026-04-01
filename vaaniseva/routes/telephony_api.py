@@ -21,6 +21,7 @@ router = APIRouter(prefix="/api/telephony", tags=["telephony"])
 TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
 TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "")
 TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER", "")
+SARVAM_TTS_URL = os.environ.get("SARVAM_TTS_URL", "")  # Twilio Function /audio endpoint
 
 # Active phone calls: call_id → {"twilio_sid": str, "status": str}
 _phone_calls: dict[str, dict] = {}
@@ -72,9 +73,18 @@ async def dial_customer(request: Request):
         logger.error(f"Greeting generation failed: {e}")
         greeting_text = f"Namaste, main VaaniSeva se bol raha hoon. Kya main {customer.get('name', '')} ji se baat kar sakta hoon?"
 
-    # Place call with inline TwiML — greeting + pause (we'll update the call after)
-    safe_greeting = _escape_xml(greeting_text)
-    twiml = f"""<Response>
+    # Place call with inline TwiML — greeting + pause
+    # Use Sarvam Bulbul TTS via Twilio Function if configured, else fall back to Polly
+    if SARVAM_TTS_URL:
+        from urllib.parse import quote
+        audio_url = f"{SARVAM_TTS_URL}?text={quote(greeting_text[:500])}&amp;lang=hi-IN"
+        twiml = f"""<Response>
+    <Play>{audio_url}</Play>
+    <Pause length="120"/>
+</Response>"""
+    else:
+        safe_greeting = _escape_xml(greeting_text)
+        twiml = f"""<Response>
     <Say voice="Polly.Aditi" language="hi-IN">{safe_greeting}</Say>
     <Pause length="120"/>
 </Response>"""
@@ -121,8 +131,16 @@ async def send_agent_message(request: Request):
     phone_call = _phone_calls[call_id]
     twilio_sid = phone_call["twilio_sid"]
 
-    safe_text = _escape_xml(agent_text)
-    twiml = f"""<Response>
+    if SARVAM_TTS_URL:
+        from urllib.parse import quote
+        audio_url = f"{SARVAM_TTS_URL}?text={quote(agent_text[:500])}&amp;lang=hi-IN"
+        twiml = f"""<Response>
+    <Play>{audio_url}</Play>
+    <Pause length="120"/>
+</Response>"""
+    else:
+        safe_text = _escape_xml(agent_text)
+        twiml = f"""<Response>
     <Say voice="Polly.Aditi" language="hi-IN">{safe_text}</Say>
     <Pause length="120"/>
 </Response>"""

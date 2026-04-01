@@ -31,6 +31,7 @@ TWILIO_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
 TWILIO_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "")
 TWILIO_PHONE = os.environ.get("TWILIO_PHONE_NUMBER", "")
 TWILIO_API = "https://api.twilio.com/2010-04-01"
+SARVAM_TTS_URL = os.environ.get("SARVAM_TTS_URL", "")
 
 # Track active voice calls
 _voice_calls: dict[str, dict] = {}
@@ -50,25 +51,32 @@ def _escape_xml(text: str) -> str:
 
 
 def _make_twiml(say_text: str, record: bool = True, hangup: bool = False) -> str:
-    """Build TwiML for a turn: Say + optionally Record + Pause."""
-    safe = _escape_xml(say_text)
+    """Build TwiML for a turn: Play Sarvam audio or fall back to Polly Say."""
+    if SARVAM_TTS_URL:
+        from urllib.parse import quote
+        audio_url = f"{SARVAM_TTS_URL}?text={quote(say_text[:500])}&amp;lang=hi-IN"
+        speak = f'<Play>{audio_url}</Play>'
+    else:
+        safe = _escape_xml(say_text)
+        speak = f'<Say voice="Polly.Aditi" language="hi-IN">{safe}</Say>'
+
     if hangup:
         return f"""<Response>
-  <Say voice="Polly.Aditi" language="hi-IN">{safe}</Say>
+  {speak}
   <Pause length="1"/>
   <Hangup/>
 </Response>"""
 
     if record:
         return f"""<Response>
-  <Say voice="Polly.Aditi" language="hi-IN">{safe}</Say>
-  <Pause length="1"/>
-  <Record maxLength="15" playBeep="false" trim="trim-silence" timeout="3"/>
+  {speak}
+  <Pause length="3"/>
+  <Record maxLength="20" playBeep="true" trim="trim-silence" timeout="5"/>
   <Pause length="300"/>
 </Response>"""
     else:
         return f"""<Response>
-  <Say voice="Polly.Aditi" language="hi-IN">{safe}</Say>
+  {speak}
   <Pause length="300"/>
 </Response>"""
 

@@ -108,7 +108,8 @@ RISK_TIERS = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
 
 customers = []
 with pool.connection() as conn:
-    # Clear existing data
+    # Clear existing data (order matters for FK constraints)
+    conn.execute("DELETE FROM payment_history")
     conn.execute("DELETE FROM call_queue")
     conn.execute("DELETE FROM quality_scores")
     conn.execute("DELETE FROM call_logs")
@@ -165,6 +166,43 @@ with pool.connection() as conn:
             loan_count += 1
 
     print(f"Created {loan_count} loans")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Generate Payment History
+
+# COMMAND ----------
+
+PAYMENT_MODES = ["UPI", "NACH", "NEFT", "Cash", "Cheque", "Online Portal", "Mobile App"]
+
+payment_count = 0
+with pool.connection() as conn:
+    conn.execute("DELETE FROM payment_history")
+    loans = conn.execute("SELECT id, customer_id, emi_amount, last_payment_date, days_overdue FROM loan_accounts").fetchall()
+
+    for loan in loans:
+        # Generate 3-15 historical payments per loan
+        n_payments = random.randint(3, 15)
+        base_date = loan["last_payment_date"] or (datetime.now() - timedelta(days=180)).date()
+
+        for i in range(n_payments):
+            pay_date = base_date - timedelta(days=30 * i + random.randint(-5, 5))
+            # Most payments are close to EMI amount
+            amount = round(loan["emi_amount"] * random.uniform(0.8, 1.2), 2)
+            mode = random.choice(PAYMENT_MODES)
+            # 90% success, 5% failed, 5% bounced
+            status = random.choices(["SUCCESS", "FAILED", "BOUNCED"], weights=[0.9, 0.05, 0.05])[0]
+            ref_id = f"PAY{random.randint(100000, 999999)}"
+
+            conn.execute(
+                """INSERT INTO payment_history (loan_id, payment_date, amount, payment_mode, status, reference_id)
+                   VALUES (%s, %s, %s, %s, %s, %s)""",
+                (loan["id"], pay_date, amount, mode, status, ref_id)
+            )
+            payment_count += 1
+
+    print(f"Created {payment_count} payment history records")
 
 # COMMAND ----------
 
@@ -260,7 +298,7 @@ with pool.connection() as conn:
 
 # Verify data counts
 with pool.connection() as conn:
-    for table in ["customer_profiles", "loan_accounts", "call_queue", "knowledge_base"]:
+    for table in ["customer_profiles", "loan_accounts", "payment_history", "call_queue", "knowledge_base"]:
         count = conn.execute(f"SELECT COUNT(*) as c FROM {table}").fetchone()
         print(f"{table}: {count['c']} rows")
 

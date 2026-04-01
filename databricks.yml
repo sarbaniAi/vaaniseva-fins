@@ -1,14 +1,21 @@
 bundle:
   name: vaaniseva
 
+variables:
+  app_name:
+    description: "Name for the Databricks App (must be unique in workspace)"
+    default: vaaniseva
+
 resources:
   apps:
     vaaniseva:
-      name: vaaniseva
-      description: "VaaniSeva — Sovereign AI Voice Agent for Indian BFSI Collections"
+      name: ${var.app_name}
+      description: "VaaniSeva — Sovereign AI Voice & WhatsApp Agent for Indian BFSI Collections"
       source_code_path: .
 
 targets:
   dev:
     default: true
     mode: development
+  prod:
+    mode: production

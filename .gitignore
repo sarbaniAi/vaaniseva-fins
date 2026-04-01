@@ -3,3 +3,9 @@ app.yaml.local
 __pycache__/
 .env
 mermaid-config.json
+.databricks/
+*.egg-info/
+dist/
+build/
+venv/
+.venv/

@@ -199,6 +199,18 @@ CREATE TABLE IF NOT EXISTS quality_scores (
     scored_at TIMESTAMP DEFAULT NOW()
 );
 
+-- Payment History
+CREATE TABLE IF NOT EXISTS payment_history (
+    id SERIAL PRIMARY KEY,
+    loan_id INTEGER REFERENCES loan_accounts(id),
+    payment_date DATE NOT NULL,
+    amount NUMERIC(10,2) NOT NULL,
+    payment_mode VARCHAR(30) DEFAULT 'UPI',
+    status VARCHAR(20) DEFAULT 'SUCCESS',
+    reference_id VARCHAR(50),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
 -- Knowledge Base (for Vector Search source)
 CREATE TABLE IF NOT EXISTS knowledge_base (
     id SERIAL PRIMARY KEY,
